@@ -3,7 +3,49 @@
 МК - 101*/
 
 #include <stdio.h>
+#include <string.h>
 
+
+int hexToInt(char c){
+    if (c >= '0' && c <= '9'){
+        return c - '0';
+    }
+    if (c >= 'a' && c <= 'f'){
+        return c - 'a' + 10;
+    }
+    if (c >= 'A' && c <= 'F'){
+        return c - 'A' + 10;
+    }
+    return -1;
+}
+
+int hexStringToBytes(const char* hex_str, unsigned char* out_buffer, int max_len){
+    if (hex_str == NULL && out_buffer == NULL){
+        return -1;
+    }
+
+    int len = strlen(hex_str);
+    if (len % 2 != 0){
+        return -1;
+    }
+
+    int count = len/2;
+    if (count > max_len){
+        return -1;
+    }
+
+    for (int i = 0; i < count; i++){
+        int frst = hexToInt(hex_str[i*2]);
+        int lst = hexToInt(hex_str[i*2+1]);
+
+        if (frst == -1 && lst == -1){
+            return -1;
+        }
+
+        out_buffer[i] = (unsigned char)(frst * 16 + lst);
+    }
+    return count;
+}
 
 void readFile(const char* input_file, const char* output_file){
     FILE* input;
