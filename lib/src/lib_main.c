@@ -68,6 +68,21 @@ int findFirstPattern(const unsigned char* data, int data_len,
     return -1;
 }
 
+int count_ocurrences(const unsigned char* data, int data_len, const unsigned char* pattern, int pattern_len){
+    int count = 0;
+    int pos = 0;
+
+    while (pos <= data_len - pattern_len){
+        int found = findFirstPattern(data + pos, data_len - pos, pattern, pattern_len);
+        if (found == -1){
+            break;
+        }
+        count++;
+        pos += found + pattern_len;
+    }
+    return count;
+}
+
 void readFile(const char* input_file, const char* output_file){
     FILE* input;
     input = fopen(input_file, "r");
