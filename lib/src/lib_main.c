@@ -47,6 +47,27 @@ int hexStringToBytes(const char* hex_str, unsigned char* out_buffer, int max_len
     return count;
 }
 
+int findFirstPattern(const unsigned char* data, int data_len, 
+                        const unsigned char* pattern, int pattern_len){
+    if (pattern_len <= 0 || pattern_len >= data_len){
+        return -1;
+    }
+
+    for (int i = 0; i <= data_len - pattern_len; i++){
+        int match = 1;
+        for (int j = 0; j < pattern_len; j++){
+            if (data[i + j] != pattern[j]){
+                match = 0;
+                break;
+            }
+        }
+        if (match == 1){
+            return i;
+        }
+    }
+    return -1;
+}
+
 void readFile(const char* input_file, const char* output_file){
     FILE* input;
     input = fopen(input_file, "r");
