@@ -3,8 +3,12 @@
 МК - 101*/
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
+#ifndef N
+#error "N err"
+#endif
 
 int hexToInt(char c){
     if (c >= '0' && c <= '9'){
@@ -87,7 +91,7 @@ int replaceInBlock(const unsigned char* data, int data_len,
                      const unsigned char* search, int search_len,
                      const unsigned char* replace, int replace_len,
                      FILE* out,
-                     unsigned char* tail, int* tail_len) {
+                     unsigned char* tail_buf, int* tail_buf_len) {
     int replacements = 0;
     int pos = 0;
 
@@ -108,7 +112,7 @@ int replaceInBlock(const unsigned char* data, int data_len,
     }
 
     int remaining = data_len - pos;
-    *tail_len = 0;
+    *tail_buf_len = 0;
     
     if (remaining > 0) {
         int safe_tail = 0;
@@ -122,37 +126,84 @@ int replaceInBlock(const unsigned char* data, int data_len,
             fwrite(data + pos, 1, to_write, out);
         }
 
-        *tail_len = remaining - to_write;
-        for (int i = 0; i < *tail_len; i++) {
-            tail[i] = data[pos + to_write + i];
+        *tail_buf_len = remaining - to_write;
+        for (int i = 0; i < *tail_buf_len; i++) {
+            tail_buf[i] = data[pos + to_write + i];
         }
     }
     
     return replacements;
 }
 
-void readFile(const char* input_file, const char* output_file){
+void replaceInFile(const char* input_file, const char* output_file,
+                   const unsigned char* search, int search_len,
+                   const unsigned char* replace, int replace_len){
     FILE* input;
-    input = fopen(input_file, "r");
+    input = fopen(input_file, "rb");
     if (input == NULL){
         printf("%s file open err", input_file);
         return;
     }
 
     FILE* output;
-    output = fopen(output_file, "w");
+    output = fopen(output_file, "wb");
     if (output == NULL){
         printf("%s file open err", output_file);
+        fclose(input);
         return;
     }
 
-    char buffer[1024];
-    while(fgets(buffer, sizeof(buffer), input) != NULL){
-        fputs(buffer, output);
+    unsigned char buffer[N];
+    unsigned char tail[2*N];
+    int tail_len = 0;
+
+    unsigned char combined[3 * N];
+
+    long total_read = 0;
+    int total_replacement = 0;
+
+
+
+    while (1){
+        size_t bytes_read = fread(buffer, 1, N, input);
+        if (bytes_read == 0){
+            break;
+        }
+        total_read += (long)bytes_read;
+
+        const unsigned char* ptr_to_process = buffer;
+        int len_to_process = (int)bytes_read;
+
+        if(tail_len > 0){
+            for (int i = 0; i < tail_len; i++){
+                combined[i] = tail[i];
+            }
+            for (int i = 0; i < bytes_read; i++){
+                combined[tail_len + i] = buffer[i];
+            }
+            ptr_to_process = combined;
+            len_to_process = tail_len + (int)bytes_read;
+        }
+
+        int block_replace = replaceInBlock(
+            ptr_to_process, len_to_process,
+            search, search_len,
+            replace, replace_len,
+            output,
+            tail, &tail_len
+        );
+
+        total_replacement += block_replace;
+
+        
     }
     
-    fclose(input);
-    fclose(output);
+    if (tail_len > 0){
+            fwrite(tail, 1, tail_len, output);
+        }
+
+        fclose(input);
+        fclose(output);
 
     return;
 }
