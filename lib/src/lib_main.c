@@ -83,6 +83,54 @@ int count_ocurrences(const unsigned char* data, int data_len, const unsigned cha
     return count;
 }
 
+int replaceInBlock(const unsigned char* data, int data_len,
+                     const unsigned char* search, int search_len,
+                     const unsigned char* replace, int replace_len,
+                     FILE* out,
+                     unsigned char* tail, int* tail_len) {
+    int replacements = 0;
+    int pos = 0;
+
+    while (pos < data_len) {
+        int found = find_first_pattern(data + pos, data_len - pos, search, search_len);
+        if (found == -1) {
+            break; 
+        }
+
+        if (found > 0) {
+            fwrite(data + pos, 1, found, out);
+        }
+        
+        fwrite(replace, 1, replace_len, out);
+        replacements++;
+        
+        pos = pos + found + search_len;
+    }
+
+    int remaining = data_len - pos;
+    *tail_len = 0;
+    
+    if (remaining > 0) {
+        int safe_tail = 0;
+        if (search_len > 1) {
+            safe_tail = search_len - 1;
+        }
+        int to_write = remaining - safe_tail;
+        if (to_write < 0) to_write = 0;
+
+        if (to_write > 0) {
+            fwrite(data + pos, 1, to_write, out);
+        }
+
+        *tail_len = remaining - to_write;
+        for (int i = 0; i < *tail_len; i++) {
+            tail[i] = data[pos + to_write + i];
+        }
+    }
+    
+    return replacements;
+}
+
 void readFile(const char* input_file, const char* output_file){
     FILE* input;
     input = fopen(input_file, "r");
