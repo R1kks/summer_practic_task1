@@ -7,7 +7,7 @@
 #include <string.h>
 
 #ifndef N
-#error "N err"
+#define N 1024
 #endif
 
 int hexToInt(char c){
